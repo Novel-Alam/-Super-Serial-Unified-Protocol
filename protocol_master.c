@@ -1,3 +1,9 @@
+/**
+ * @brief Protocol Master Implementation
+ * 
+ * Author: Novel Alam
+ */
+
 #include "protocol.h"
 
 // Global Variables
