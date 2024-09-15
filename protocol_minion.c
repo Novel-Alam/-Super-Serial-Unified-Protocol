@@ -1,3 +1,9 @@
+/**
+ * @brief Protocol Minion Implementation
+ * 
+ * Author: Novel Alam
+ */
+
 #include "protocol.h"
 
 // Global Variables for Minion
