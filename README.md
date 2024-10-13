@@ -1,9 +1,102 @@
 # **Protocol Library Documentation**
 
+**Version**: 2.5  
+**Author**: Novel Alam
+---
 ## **Overview**
 
 The Protocol Library I created provides a robust and flexible serial communication protocol combining the features of SPI, I2C, and CAN. It supports a master-minion architecture with multi-master capability, full-duplex communication, address-based messaging, and differential signaling. This documentation outlines the features, functions, and usage of the library.
 
+## 1. Introduction
+
+### Purpose
+
+This document outlines the design of a comprehensive serial communication protocol that integrates the most effective features of SPI, I2C, and CAN. The protocol is designed to support robust multi-master, full-duplex communication in embedded systems, ensuring efficient data transfer among devices while maintaining high reliability and performance.
+
+### Scope
+
+This protocol is intended for applications requiring reliable communication between multiple microcontrollers, particularly in IoT and automation environments. It addresses the need for effective data transmission with minimal wiring and enhanced noise immunity.
+
+---
+
+## 2. Protocol Overview
+
+### Architecture
+
+The protocol utilizes a multi-master architecture, allowing multiple master devices to initiate communication with one or more slave devices. Each device is identified by a unique 10-bit address, facilitating selective data transfer.
+
+### Addressing
+
+- **10-Bit Addressing Scheme**: Each device on the bus is assigned a unique 10-bit address. Devices will only respond to data addressed to them, minimizing unnecessary communication.
+
+---
+
+## 3. Signal Design
+
+### Clock Signal
+
+- **Generation**: A designated master will be responsible for sending out a periodic clock pulse, providing synchronization for all devices on the bus. One of the masters will adjust the baud rate, ensuring all devices operate at the same communication speed.
+
+### Data Transmission
+
+- **TX Line**: 
+  - Shared by all master devices for transmitting data, including addresses.
+  - Connected to all slave devices to receive data.
+- **RX Line**:
+  - Used by slave devices to transmit data back to the master upon selection.
+  - Monitored by master devices to detect bus arbitration outcomes.
+
+---
+
+## 4. Communication Flow
+
+### Bus Arbitration
+
+- **Mechanism**: When multiple masters attempt to send data simultaneously, bus arbitration is handled by comparing signal levels. A logic high from one master combined with a logic low from another indicates the loss of bus arbitration for the latter. The master that maintains a high signal continues communication, while the others cease transmission.
+
+### Data Transfer Process
+
+1. **Master Initiates Communication**: The master sends a 10-bit address followed by the data on the TX line.
+2. **Slave Response**: Devices with matching addresses respond, enabling efficient data communication.
+
+---
+
+## 5. Interrupt Handling
+
+### Rising Edge Interrupts
+
+- **Interrupts are triggered on the rising edge of the clock signal for**:
+  - **Masters**: Sampling the TX line to read incoming data.
+  - **Slaves**:
+    - Sending data bits if available.
+    - Receiving data bits from the TX line upon selection.
+
+### Data Flow Explanation
+
+1. **Master Configuration**: The designated master sets the clock signal and monitors the TX line continuously for data transmission and arbitration.
+2. **Transmission**: When the master sends data on the TX line, it also sends the 10-bit address. Slaves check this address and respond only if it matches their assigned address.
+3. **Slave Transmission**: Selected slaves use the RX line to send data back to the master during their turn.
+
+---
+
+## 6. Unique Signaling Sequences
+
+- **Start Sequence**: `11001` (binary)  
+- **End Sequence**: `00110` (binary)
+
+---
+
+## 7. Differential Signaling
+
+The protocol employs differential signaling for both TX and RX lines to enhance noise immunity and improve overall communication reliability, crucial for maintaining data integrity in noisy environments.
+
+---
+
+## 8. Implementation Considerations
+
+### Responsibility of the Designated Master
+
+- The designated master must maintain the periodic clock pulse. This involves adjusting the baud rate as needed to ensure all devices are synchronized.
 ## **Features**
 
 1. **Master-Minion Architecture**:
