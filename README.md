@@ -3,10 +3,6 @@
 **Version**: 2.5  
 **Author**: Novel Alam
 ---
-## **Overview**
-
-The Protocol Library I created provides a robust and flexible serial communication protocol combining the features of SPI, I2C, and CAN. It supports a master-minion architecture with multi-master capability, full-duplex communication, address-based messaging, and differential signaling. This documentation outlines the features, functions, and usage of the library.
-
 ## 1. Introduction
 
 ### Purpose
