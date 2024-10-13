@@ -78,7 +78,6 @@ The protocol utilizes a multi-master architecture, allowing multiple master devi
 ## 6. Unique Signaling Sequences
 
 - **Start Sequence**: `11001` (binary)  
-- **End Sequence**: `00110` (binary)
 
 ---
 
