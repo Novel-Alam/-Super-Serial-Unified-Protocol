@@ -11,7 +11,7 @@ This document outlines the design of a comprehensive serial communication protoc
 
 ### Scope
 
-This protocol is intended for applications requiring reliable communication between multiple microcontrollers, particularly in IoT and automation environments. It addresses the need for effective data transmission with minimal wiring and enhanced noise immunity.
+This protocol is intended for applications requiring reliable communication between multiple microcontrollers,in automation environments. It addresses the need for effective data transmission with full duplex  and enhanced noise immunity.
 
 ---
 
