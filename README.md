@@ -116,126 +116,107 @@ The protocol employs differential signaling for both TX and RX lines to enhance 
 7. **Customizable Timing**:
    - Timer configurations can be adjusted based on system requirements.
 
-## **API Functions**
 
-### **Master Functions**
 
-- **`void Protocol_Master_Init(uint8_t address);`**
-  - Initializes the protocol in master mode.
-  - **Parameters**: 
-    - `address`: The address of the master device.
-  
-- **`void Protocol_Master_SendByte(uint8_t data);`**
-  - Sends a byte of data to the minion(s) using differential signaling.
-  - **Parameters**: 
-    - `data`: The byte of data to send.
-  
-- **`void Protocol_Master_SendAddress(uint8_t address);`**
-  - Sends an address to select a specific minion.
-  - **Parameters**: 
-    - `address`: The address of the target minion.
-  
-- **`void Protocol_Master_Arbitrate(void);`**
-  - Performs bus arbitration to ensure access to the bus.
-  
-- **`uint8_t Protocol_Master_ReadByte(void);`**
-  - Reads a byte of data from the buffer.
-  - **Returns**: The received byte of data.
+## Master Functions
 
-### **Minion Functions**
+### 1. Master_Init(bool clockMaster, uint32_t baudRate)
 
-- **`void Protocol_Minion_Init(uint8_t address);`**
-  - Initializes the protocol in minion mode.
-  - **Parameters**: 
-    - `address`: The address of the minion device.
-  
-- **`uint8_t Protocol_Minion_ReadByte(void);`**
-  - Reads a byte of data from the buffer.
-  - **Returns**: The received byte of data.
-  
-- **`void Protocol_Minion_SendByte(uint8_t data);`**
-  - Sends a byte of data to the master using differential signaling.
-  - **Parameters**: 
-    - `data`: The byte of data to send.
-  
-- **`void Protocol_Minion_ProcessData(void);`**
-  - Processes incoming data after it has been received.
+- **Description**: Initializes the master communication protocol, setting up the necessary GPIO pins for TX, RX, and CLK, and configuring interrupts for clock edges. If this instance is the clock master, it sets the clock speed.
+- **Parameters**:
+  - `clockMaster`: Boolean indicating if this instance is the clock master.
+  - `baudRate`: The baud rate for communication.
+- **Note**: Call this function at the start to initialize the master.
 
-### **Interrupt Handlers**
+### 2. Master_SetClockSpeed(uint32_t baudRate)
 
-- **`void Protocol_IRQHandler(void);`**
-  - Handles EXTI interrupts triggered by the clock signal.
-  - Processes incoming bits and updates the buffer.
+- **Description**: Sets the clock speed by adjusting the timer’s period to match the desired baud rate.
+- **Parameters**:
+  - `baudRate`: The baud rate for communication.
+- **Note**: Only relevant if the master is the clock master.
 
-## **Configuration and Setup**
+### 3. Master_StartTransmission(uint8_t* txData, uint8_t* rxData, uint16_t address, uint8_t dataLength)
 
-### **Pin Definitions**
+- **Description**: Starts the transmission process, setting up the data and address for communication with the selected minion.
+- **Parameters**:
+  - `txData`: Pointer to the data to transmit.
+  - `rxData`: Pointer to the buffer where received data will be stored.
+  - `address`: Address of the target minion.
+  - `dataLength`: Length of the data to transmit (in bits).
+- **Note**: This function prepares the master to send data to the selected minion.
 
-- **Master:**
-  - `TX_H`: High signal pin for differential signaling (e.g., PA0).
-  - `TX_L`: Low signal pin for differential signaling (e.g., PA1).
-  - `CLK`: Clock signal pin (e.g., PA2).
+### 4. Master_Transmission_ISR(void)
 
-- **Minion:**
-  - `RX_H`: High signal pin for differential signaling (e.g., PB0).
-  - `RX_L`: Low signal pin for differential signaling (e.g., PB1).
+- **Description**: Manages the transmission logic on each clock edge. This function handles state transitions between sending the start sequence, address, data, and the stop sequence.
+- **Note**: This function should be called inside the interrupt handler for clock edge events.
 
-### **Buffer Size**
+### 5. Master_Arbitration(void)
 
-- The buffer size for received data is defined by `BUFFER_SIZE` and can be adjusted as needed.
+- **Description**: Checks bus arbitration to determine if the master has won or lost control of the bus.
+- **Note**: If arbitration is lost, the master must stop the transmission.
 
-### **Timing Configuration**
+### 6. Master_LoadData(uint8_t* data, uint8_t length)
 
-- The clock and timer settings are configured in `Timer_Init()` and can be customized based on system requirements.
+- **Description**: Loads up to 8 bits of data into the transmission buffer for sending.
+- **Parameters**:
+  - `data`: Pointer to the data to load.
+  - `length`: Number of bits to load (maximum 8 bits).
+- **Note**: This data will be loaded for future transmission.
 
-## **Usage Example**
+### 7. Master_ReadOldData(uint8_t* buffer, uint8_t length)
 
-### **Master Example**
+- **Description**: Reads data from the old data buffer in case of overflow.
+- **Parameters**:
+  - `buffer`: Pointer to the buffer where old data will be stored.
+  - `length`: Number of bits to read from the old buffer.
+- **Note**: Use this function to retrieve data in case of buffer overflow.
 
-```c
-#include "protocol.h"
+## Minion Functions
 
-int main(void) {
-    Protocol_Master_Init(MASTER_ADDRESS);
-    Protocol_Master_SendAddress(MINION_ADDRESS);
+### 1. Minion_LoadData(uint8_t* data, uint8_t length)
 
-    while (1) {
-        Protocol_Master_SendByte(0x55); // Example data
-        for (volatile int i = 0; i < 1000000; i++);  // Delay
-    }
-}
-```
+- **Description**: Loads up to 8 bits of data into the transmission buffer.
+- **Parameters**:
+  - `data`: Pointer to the data to load.
+  - `length`: Number of bits to load (maximum 8 bits).
+- **Note**: This data will be transmitted in response to a master’s request.
 
-### **Minion Example**
+### 2. Minion_ReadOldData(uint8_t* buffer, uint8_t length)
+
+- **Description**: Reads data from the old data buffer in case of overflow.
+- **Parameters**:
+  - `buffer`: Pointer to the buffer where old data will be stored.
+  - `length`: Number of bits to read from the old buffer.
+- **Note**: This function retrieves data from the overflow buffer if it is full.
+
+## Example Code Usage
+
+### Master Example
 
 ```c
-#include "protocol.h"
+#include "master.h"
 
 int main(void) {
-    Protocol_Minion_Init(MINION_ADDRESS);
-
+    uint8_t txData[8] = {0xAA};   // Data to send
+    uint8_t rxData[8] = {0};      // Buffer for received data
+    uint16_t minionAddress = 0x12; // Address of the minion
+    uint8_t dataLength = 8;       // Data length in bits
+    
+    // Initialize the master (not the clock master)
+    Master_Init(false, 9600);
+    
+    // Start transmission
+    Master_StartTransmission(txData, rxData, minionAddress, dataLength);
+    
+    // Main loop
     while (1) {
-        uint8_t received_data = Protocol_Minion_ReadByte();
-        // Process received data
-        for (volatile int i = 0; i < 1000000; i++);  // Delay
+        // Handle communication logic
     }
 }
-```
 
-## **Interrupts and Handling**
-
-- **EXTI2_IRQHandler**: Handles the rising edge of the clock signal, processes received bits, and updates the buffer.
-
-## **Additional Notes**
-
-- Ensure to adapt the GPIO and timer settings based on your specific STM32 microcontroller model and clock configuration.
-- The library uses simple delay loops for timing. For more precise timing, consider using hardware timers or other mechanisms.
-
-## **Troubleshooting**
-
-- **Communication Issues**: Verify pin connections and check if differential signaling is correctly implemented.
-- **Buffer Overflow**: Ensure that the buffer size is adequate for your application, and monitor buffer indices to avoid overflows.
-
----
-
-This documentation provides a clear overview of the protocol library’s features and usage, helping users integrate and deploy the protocol in their applications effectively. If you need any additional details or modifications, let me know!
+// Clock edge interrupt handler (if using STM32 HAL)
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
+    if (GPIO_Pin == GPIO_PIN_3) {
+        Master_Transmission_ISR();  // Handle transmission on clock edge
+    }
+}
